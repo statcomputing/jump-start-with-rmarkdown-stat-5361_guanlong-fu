@@ -1,0 +1,84 @@
+---
+title: "Homework1_Guanlong Fu"
+author: "Guanlong"
+date: "2018Äê2ÔÂ1ÈÕ"
+output: html_document
+abstract: |
+   This is homework 1 to learn to use R markdown to output well formulated documents with texts, figures and results. The    aim of the exercise is to do a monte-carlo simulation to empirically calcualte the cdf of the standard normal            distribution and compare to the result to the **true** cdf to get a idea of the size of 
+   the magnitude. 
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Mathematical equation
+
+We what approximate the cdf of the standard normal distribution N(0,1), which is given as follows:
+
+$$
+\Phi(t) = \int_{-\infty}^{t} \frac{1}{\sqrt{2\pi}} e^{-y^2/2} ~ dy,
+$$
+by the following equation:
+$$
+\hat{\Phi}(t)= \frac{1}{n}\sum_{i=1}^{n}I(X{i} \leq t ),                                                               
+$$
+First we write a function named "empirical_cdf_sdnormal to calculate the above estimated empirical cdf of N(0,1)
+
+
+```{r function }
+empirical_cdf_sdnormal <- function (n,t)
+{
+  x <- rnorm(n, mean = 0, sd = 1)
+  b = 0
+  for (i in 1:n) {
+    if ( x[i] <= t) {b=b+1}
+  }
+  empirical_cdf <- b/n
+  
+  return(empirical_cdf)
+  
+}
+
+
+```
+
+Then We code nexted loops to calculate the value of $\hat{\Phi}(t)$ for each of three value of $n=\{ 10^{2},10^{3},10^{4}\}$ and for the each of the nine values of t. Where the matrix "Phi_hat" is the calclated cdf for the combnation of $3\times9=27$ (n,t) , and repeated for 100 times for each (n,t) combnation. "bias" is the corresponding bias for each (n,t) combnation in each repitition.
+
+Note here "Phi_hat" is a $3\times900$ matrix, each rown represent the estimates corresponding to a n value, and every 100 column stands for estimates corresponding to a t value. the matrix is too large to be shown completely, so we will first row of each matrix
+
+
+```{r loop}
+Phi_hat <- matrix(0,3,900)  # each row represents a n value, each 100 clo represents a t value
+bias <- matrix(0,3,900) # bias matrix
+
+n <- c(100,1000,10000)
+t <- c(0.0,0.67,0.84,1.28,1.65,2.32,2.58,3.09,3.72)
+
+for (i in 1:length(n)) {
+  for (j in 1: length(t)) {
+     for (k in (1:100)) {
+       Phi_hat[i,100*(j-1)+k] <- empirical_cdf_sdnormal(n[i],t[j])  # 100*(j-1)+k, for the each 100 elements corresponding to the same value of t
+       bias[i,100*(j-1)+k] <- Phi_hat[i,100*(j-1)+k]-pnorm(t[j])    # calculate the bias
+       
+       }
+    
+  } 
+  
+}
+Phi_hat[1,]
+bias[1,]
+```
+The boxplot is generated for all the t values 
+```{r  echo=FALSE}
+output_bias <- matrix(bias, 300,9, byrow = FALSE)
+df<-data.frame(output_bias)
+library(reshape2)
+meltData <- melt(df)
+library(ggplot2)
+p <- ggplot(meltData, aes(factor(variable), value)) 
+p + geom_boxplot() + facet_wrap(~variable, scale="free")
+
+
+```
